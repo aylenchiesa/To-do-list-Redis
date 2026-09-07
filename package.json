@@ -1,0 +1,23 @@
+{
+  "name": "redis-client-lib",
+  "version": "1.0.0",
+  "description": "TypeScript Redis client library",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/index.ts",
+    "example": "ts-node src/example.ts"
+  },
+  "keywords": ["redis", "typescript"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ioredis": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0"
+  }
+}

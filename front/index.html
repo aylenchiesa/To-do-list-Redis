@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title id="pageTitle">Todo List</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+          Cantarell, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 500px;
+        width: 100%;
+        padding: 30px;
+      }
+
+      h1 {
+        color: #333;
+        margin-bottom: 10px;
+        font-size: 28px;
+      }
+
+      .subtitle {
+        color: #999;
+        font-size: 14px;
+        margin-bottom: 30px;
+      }
+
+      .input-group {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
+      #taskInput {
+        flex: 1;
+        padding: 12px 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: border-color 0.3s;
+      }
+
+      #taskInput:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      button {
+        padding: 12px 25px;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+
+      button:hover {
+        background: #5568d3;
+      }
+
+      button:active {
+        transform: scale(0.98);
+      }
+
+      #taskList {
+        list-style: none;
+      }
+
+      .task-item {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        background: #f8f8f8;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        gap: 12px;
+        transition: all 0.3s;
+      }
+
+      .task-item:hover {
+        background: #f0f0f0;
+        transform: translateX(4px);
+      }
+
+      .task-item input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        accent-color: #667eea;
+      }
+
+      .task-text {
+        flex: 1;
+        font-size: 16px;
+        color: #333;
+        word-break: break-word;
+      }
+
+      .task-item input[type="checkbox"]:checked ~ .task-text {
+        color: #999;
+        text-decoration: line-through;
+      }
+
+      .delete-btn {
+        background: #ff6b6b;
+        padding: 8px 12px;
+        font-size: 14px;
+        border-radius: 6px;
+      }
+
+      .delete-btn:hover {
+        background: #ee5a52;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #999;
+      }
+
+      .empty-state svg {
+        width: 60px;
+        height: 60px;
+        margin-bottom: 15px;
+        opacity: 0.5;
+      }
+
+      .error {
+        background: #ffe0e0;
+        color: #c92a2a;
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        border-left: 4px solid #c92a2a;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Mi Lista de Tareas</h1>
+      <p class="subtitle" id="instanceId">{{INSTANCE_ID}}</p>
+
+      <div id="error" class="error" style="display: none"></div>
+
+      <div class="input-group">
+        <input
+          type="text"
+          id="taskInput"
+          placeholder="Añade una nueva tarea..."
+          autocomplete="off"
+        />
+        <button onclick="addTask()">Agregar</button>
+      </div>
+
+      <ul id="taskList"></ul>
+      <div id="emptyState" class="empty-state">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"
+          ></path>
+        </svg>
+        <p>No hay tareas. ¡Crea una para empezar!</p>
+      </div>
+    </div>
+
+    <script>
+      const API_URL = "http://localhost:5001";
+
+      /*async function setupInstanceId() {
+        try {
+          const response = await fetch("/api/config");
+          const data = await response.json();
+          const instanceEl = document.getElementById("instanceId");
+          if (instanceEl && data.instanceId) {
+            instanceEl.textContent = data.instanceId;
+          }
+        } catch (error) {
+          console.error("Error al cargar INSTANCE_ID:", error);
+        }
+      }*/
+
+      async function loadTasks() {
+        try {
+          const response = await fetch(`${API_URL}/api/tasks`);
+          const data = await response.json();
+          renderTasks(data.tasks || []);
+        } catch (error) {
+          showError("Error cargando tareas: " + error.message);
+        }
+      }
+
+      function renderTasks(tasks) {
+        const taskList = document.getElementById("taskList");
+        const emptyState = document.getElementById("emptyState");
+
+        taskList.innerHTML = "";
+
+        if (tasks.length === 0) {
+          emptyState.style.display = "block";
+          return;
+        }
+
+        emptyState.style.display = "none";
+
+        tasks.reverse().forEach((taskItem) => {
+          const task =
+            typeof taskItem === "string" ? JSON.parse(taskItem) : taskItem;
+          const li = document.createElement("li");
+          li.className = "task-item";
+
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = task.completed;
+          checkbox.onchange = () => toggleTask(task.id);
+
+          const span = document.createElement("span");
+          span.className = "task-text";
+          span.textContent = task.task;
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.className = "delete-btn";
+          deleteBtn.textContent = "Eliminar";
+          deleteBtn.onclick = () => deleteTask(task.id);
+
+          li.appendChild(checkbox);
+          li.appendChild(span);
+          li.appendChild(deleteBtn);
+          taskList.appendChild(li);
+        });
+      }
+
+      async function addTask() {
+        const input = document.getElementById("taskInput");
+        const task = input.value.trim();
+
+        if (!task) {
+          showError("Por favor ingresa una tarea");
+          return;
+        }
+
+        try {
+          const response = await fetch(`${API_URL}/api/tasks`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ task }),
+          });
+
+          if (!response.ok) throw new Error("Error agregando tarea");
+
+          input.value = "";
+          loadTasks();
+        } catch (error) {
+          showError("Error: " + error.message);
+        }
+      }
+
+      async function deleteTask(id) {
+        try {
+          const response = await fetch(`${API_URL}/api/tasks/${id}`, {
+            method: "DELETE",
+          });
+
+          if (!response.ok) throw new Error("Error eliminando tarea");
+          loadTasks();
+        } catch (error) {
+          showError("Error: " + error.message);
+        }
+      }
+
+      async function toggleTask(id) {
+        try {
+          const response = await fetch(`${API_URL}/api/tasks/${id}`, {
+            method: "PUT",
+          });
+
+          if (!response.ok) throw new Error("Error actualizando tarea");
+          loadTasks();
+        } catch (error) {
+          showError("Error: " + error.message);
+        }
+      }
+
+      function showError(message) {
+        const errorDiv = document.getElementById("error");
+        errorDiv.textContent = message;
+        errorDiv.style.display = "block";
+        setTimeout(() => {
+          errorDiv.style.display = "none";
+        }, 5000);
+      }
+
+      document.getElementById("taskInput").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") addTask();
+      });
+
+      // Inicialización
+      loadTasks();
+    </script>
+  </body>
+</html>
